@@ -173,7 +173,13 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     # the momentum variable to update the running mean and running variance,    #
     # storing your result in the running_mean and running_var variables.        #
     #############################################################################
-    pass
+    sample_mean = np.mean(x, axis = 0, keepdims = True)
+    sample_var = np.var(x, axis = 0, keepdims = True)
+    running_mean = momentum * running_mean + (1-momentum) * sample_mean
+    running_var = momentum * running_var + (1-momentum) * sample_var
+    x1 = (x - sample_mean) / np.sqrt(sample_var + eps)
+    out = (x1 * gamma) + beta
+    cache = (x1, sample_mean, sample_var, gamma, beta, eps)
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -184,7 +190,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     # and shift the normalized data using gamma and beta. Store the result in   #
     # the out variable.                                                         #
     #############################################################################
-    pass
+    out = (x - running_mean) / np.sqrt(running_var + eps)
+    out = (out * gamma) + beta
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -220,7 +227,15 @@ def batchnorm_backward(dout, cache):
   # TODO: Implement the backward pass for batch normalization. Store the      #
   # results in the dx, dgamma, and dbeta variables.                           #
   #############################################################################
-  pass
+  n = dout.shape[0]
+  x1, sample_mean, sample_var, gamma, beta, eps = cache
+  dbeta = np.ones([1, n]).dot(dout)
+  dgamma = np.sum(x1 * dout, axis = 0)
+  dtmp = dout * gamma
+  v = sample_var + eps
+  dtmp2 = dtmp * (1 - x1 * v)
+  dx = dtmp2.mean(axis = 0, keepdims = True) * x1
+  dx = dx + dtmp / np.sqrt(v) 
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################

@@ -163,8 +163,6 @@ class FullyConnectedNet(object):
     self.num_layers = 1 + len(hidden_dims)
     self.dtype = dtype
     self.params = {}
-    self.gamma = 0.0
-    self.beta = 1.0
     ############################################################################
     # TODO: Initialize the parameters of the network, storing all values in    #
     # the self.params dictionary. Store weights and biases for the first layer #
@@ -272,7 +270,9 @@ class FullyConnectedNet(object):
       cache.append(c)
       #dropout
       if self.use_dropout:
-        pass
+        o, c = dropout_forward(o, self.dropout_param)
+        cache.append(c)
+
       caches.append(cache)
     i = self.num_layers - 1
     o, c = affine_forward(o, self.params[self.W_names[i]], self.params[self.b_names[i]])
@@ -309,7 +309,8 @@ class FullyConnectedNet(object):
       cache = caches[i]
       #dropout
       if self.use_dropout:
-        pass
+        c = cache.pop()
+        d = dropout_backward(d, c)
       #relu
       c = cache.pop()
       d = relu_backward(d, c)

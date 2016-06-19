@@ -231,11 +231,14 @@ def batchnorm_backward(dout, cache):
   x1, sample_mean, sample_var, gamma, beta, eps = cache
   dbeta = np.ones([1, n]).dot(dout)
   dgamma = np.sum(x1 * dout, axis = 0)
-  dtmp = dout * gamma
   v = sample_var + eps
-  dtmp2 = dtmp * (1 - x1 * v)
-  dx = dtmp2.mean(axis = 0, keepdims = True) * x1
-  dx = dx + dtmp / np.sqrt(v) 
+  dtmp = dout * gamma / np.sqrt(v)
+  # !important
+  # notice here, sample_var and sample_mean is not a constant.
+  # these two variables are functions of x1,x2...xn
+  dx = -(dtmp * x1).mean(axis = 0, keepdims = True) * x1
+  dx -= dtmp.mean(axis = 0, keepdims = True)
+  dx += dtmp
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -265,7 +268,18 @@ def batchnorm_backward_alt(dout, cache):
   # should be able to compute gradients with respect to the inputs in a       #
   # single statement; our implementation fits on a single 80-character line.  #
   #############################################################################
-  pass
+  n = dout.shape[0]
+  x1, sample_mean, sample_var, gamma, beta, eps = cache
+  dbeta = np.ones([1, n]).dot(dout)
+  dgamma = np.sum(x1 * dout, axis = 0)
+  v = sample_var + eps
+  dtmp = dout * gamma / np.sqrt(v)
+  # !important
+  # notice here, sample_var and sample_mean is not a constant.
+  # these two variables are functions of x1,x2...xn
+  dx = -(dtmp * x1).mean(axis = 0, keepdims = True) * x1
+  dx -= dtmp.mean(axis = 0, keepdims = True)
+  dx += dtmp
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################

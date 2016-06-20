@@ -391,7 +391,24 @@ def conv_forward_naive(x, w, b, conv_param):
   # TODO: Implement the convolutional forward pass.                           #
   # Hint: you can use the function np.pad for padding.                        #
   #############################################################################
-  pass
+  # naive forward pass
+  # naive 0.0
+  stride = conv_param['stride']
+  pad = conv_param['pad']
+  N, C, H, W = x.shape
+  F, _, HH, WW = w.shape
+  H1 = 1 + (H + 2 * pad - HH) / stride
+  W1 = 1 + (W + 2 * pad - WW) / stride
+  out = np.zeros([N, F, H1, W1])
+  X = np.zeros([N, C, H+2*pad, W+2*pad])
+  X[:, :, pad:pad+H, pad:pad+W] = x
+  for n in range(N):
+    for h in range(H1):
+      for w in range(W1):
+        print n,h,w,X[n, :, h*stride:h*stride+HH, w*stride:w*stride+WW]
+        print n,h,w,X[n, :, h*stride:h*stride+HH, w*stride:w*stride+WW]*w
+        print n, h, w,np.sum(X[n, :, h*stride:h*stride+HH, w*stride:w*stride+WW] * w, axis = (1,2))
+        out[n, :, h, w] = np.sum(X[n, :, h*stride:h*stride+HH, w*stride:w*stride+WW] * w, axis = (1,2)) + b
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -412,11 +429,28 @@ def conv_backward_naive(dout, cache):
   - dw: Gradient with respect to w
   - db: Gradient with respect to b
   """
-  dx, dw, db = None, None, None
   #############################################################################
   # TODO: Implement the convolutional backward pass.                          #
   #############################################################################
-  pass
+  x, w, b, conv_param = cache
+  stride = conv_param['stride']
+  pad = conv_param['pad']
+  N, C, H, W = x.shape
+  F, _, HH, WW = w.shape
+  H1 = 1 + (H + 2 * pad - HH) / stride
+  W1 = 1 + (W + 2 * pad - WW) / stride
+  X = np.zeros([N, C, H+2*pad, W+2*pad])
+  X[:, :, pad:pad+H, pad:pad+W] = x
+  db = np.sum(dout, axis = (0, 2, 3))
+  dw = np.zeros(w.shape)
+  for h in range(H1):
+    for w in range(W1):
+      dw += np.sum(X[:, :, h*stride:h*stride+HH, w*stride:w*stride+WW], axis = 0)
+  dX = np.zeros(X.shape)
+  for h in range(H1):
+    for w in range(W1):
+      dX[:, :, h*stride:h*stride+HH, w*stride:w*stride+WW] += w
+  dx = dX[:, :, pad:pad+H, pad:pad+W]
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################

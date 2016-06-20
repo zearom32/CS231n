@@ -450,7 +450,8 @@ def conv_backward_naive(dout, cache):
   dX = np.zeros(X.shape)
   for h in range(H1):
     for w in range(W1):
-      dX[:, :, h*stride:h*stride+HH, w*stride:w*stride+WW] += np.sum(dout[:, :, h, w][:, :, np.newaxis, np.newaxis, np.newaxis] * m[np.newaxis, :, :, :, :], axis = 1)
+      dX[:, :, h*stride:h*stride+HH, w*stride:w*stride+WW] += \
+      np.sum(dout[:, :, h, w][:, :, np.newaxis, np.newaxis, np.newaxis] * m[np.newaxis, :, :, :, :], axis = 1)
   dx = dX[:, :, pad:pad+H, pad:pad+W]
   #############################################################################
   #                             END OF YOUR CODE                              #
@@ -473,11 +474,19 @@ def max_pool_forward_naive(x, pool_param):
   - out: Output data
   - cache: (x, pool_param)
   """
-  out = None
   #############################################################################
   # TODO: Implement the max pooling forward pass                              #
   #############################################################################
-  pass
+  pool_height = pool_param['pool_height']
+  pool_width = pool_param['pool_width']
+  stride = pool_param['stride']
+  N,C,H,W = x.shape
+  H1 = 1 + (H - pool_height) / stride
+  W1 = 1 + (W - pool_width) / stride
+  out = np.zeros((N, C, H1, W1))
+  for h in range(H1):
+    for w in range(W1):
+      out[:, :, h, w] = np.max(x[:, :, h*stride:h*stride+pool_height, w*stride:w*stride+pool_width], axis = (2,3))
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -496,11 +505,23 @@ def max_pool_backward_naive(dout, cache):
   Returns:
   - dx: Gradient with respect to x
   """
-  dx = None
+  
   #############################################################################
   # TODO: Implement the max pooling backward pass                             #
   #############################################################################
-  pass
+  x, pool_param = cache
+  dx = np.zeros(x.shape)
+  pool_height = pool_param['pool_height']
+  pool_width = pool_param['pool_width']
+  stride = pool_param['stride']
+  N,C,H,W = x.shape
+  H1 = 1 + (H - pool_height) / stride
+  W1 = 1 + (W - pool_width) / stride
+  for h in range(H1):
+    for w in range(W1):
+      maxn = np.max(x[:, :, h*stride:h*stride+pool_height, w*stride:w*stride+pool_width], axis = (2,3), keepdims = True)
+      dx[:, :, h*stride:h*stride+pool_height, w*stride:w*stride+pool_width] += \
+      dout[:, :, h, w][:,:, np.newaxis, np.newaxis] * (x[:, :, h*stride:h*stride+pool_height, w*stride:w*stride+pool_width] == maxn)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################

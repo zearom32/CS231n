@@ -393,6 +393,8 @@ def conv_forward_naive(x, w, b, conv_param):
   #############################################################################
   # naive forward pass
   # naive 0.0
+  m = w
+  #b = b[:,np.newaxis, np.newaxis]
   stride = conv_param['stride']
   pad = conv_param['pad']
   N, C, H, W = x.shape
@@ -405,14 +407,11 @@ def conv_forward_naive(x, w, b, conv_param):
   for n in range(N):
     for h in range(H1):
       for w in range(W1):
-        print n,h,w,X[n, :, h*stride:h*stride+HH, w*stride:w*stride+WW]
-        print n,h,w,X[n, :, h*stride:h*stride+HH, w*stride:w*stride+WW]*w
-        print n, h, w,np.sum(X[n, :, h*stride:h*stride+HH, w*stride:w*stride+WW] * w, axis = (1,2))
-        out[n, :, h, w] = np.sum(X[n, :, h*stride:h*stride+HH, w*stride:w*stride+WW] * w, axis = (1,2)) + b
+        out[n, :, h, w] = np.sum(X[n, :, h*stride:h*stride+HH, w*stride:w*stride+WW] * m, axis = (1,2,3)) + b
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
-  cache = (x, w, b, conv_param)
+  cache = (x, m, b, conv_param)
   return out, cache
 
 
@@ -432,24 +431,26 @@ def conv_backward_naive(dout, cache):
   #############################################################################
   # TODO: Implement the convolutional backward pass.                          #
   #############################################################################
-  x, w, b, conv_param = cache
+  x, m, b, conv_param = cache
   stride = conv_param['stride']
   pad = conv_param['pad']
   N, C, H, W = x.shape
-  F, _, HH, WW = w.shape
+  F, _, HH, WW = m.shape
   H1 = 1 + (H + 2 * pad - HH) / stride
   W1 = 1 + (W + 2 * pad - WW) / stride
   X = np.zeros([N, C, H+2*pad, W+2*pad])
   X[:, :, pad:pad+H, pad:pad+W] = x
   db = np.sum(dout, axis = (0, 2, 3))
-  dw = np.zeros(w.shape)
+  dw = np.zeros(m.shape)
   for h in range(H1):
     for w in range(W1):
-      dw += np.sum(X[:, :, h*stride:h*stride+HH, w*stride:w*stride+WW], axis = 0)
+      tmp1 = dout[:,:,h,w][:,:,np.newaxis, np.newaxis, np.newaxis]
+      tmp2 =  X[:, :, h*stride:h*stride+HH, w*stride:w*stride+WW][:, np.newaxis, :,:,:]
+      dw += np.sum(tmp1 * tmp2, axis = 0)
   dX = np.zeros(X.shape)
   for h in range(H1):
     for w in range(W1):
-      dX[:, :, h*stride:h*stride+HH, w*stride:w*stride+WW] += w
+      dX[:, :, h*stride:h*stride+HH, w*stride:w*stride+WW] += np.sum(dout[:, :, h, w][:, :, np.newaxis, np.newaxis, np.newaxis] * m[np.newaxis, :, :, :, :], axis = 1)
   dx = dX[:, :, pad:pad+H, pad:pad+W]
   #############################################################################
   #                             END OF YOUR CODE                              #

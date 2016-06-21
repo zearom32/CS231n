@@ -559,7 +559,33 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
   # version of batch normalization defined above. Your implementation should  #
   # be very short; ours is less than five lines.                              #
   #############################################################################
-  pass
+  mode = bn_param['mode']
+  eps = bn_param.get('eps', 1e-5)
+  momentum = bn_param.get('momentum', 0.9)
+  N, C, H, W = x.shape
+  D = C * H * W
+  running_mean = bn_param.get('running_mean', np.zeros(D, dtype=x.dtype))
+  running_var = bn_param.get('running_var', np.zeros(D, dtype=x.dtype))
+  gamma = gamma[np.newaxis, :, np.newaxis, np.newaxis]
+  beta = beta[np.newaxis, :, np.newaxis, np.newaxis]
+  if mode == "train":
+    sample_mean = np.mean(x, axis = 0, keepdims = True)
+    sample_var = np.var(x, axis = 0, keepdims = True)
+    running_mean = momentum * running_mean + (1-momentum) * sample_mean.flatten()
+    running_var = momentum * running_var + (1-momentum) * sample_var.flatten()
+    x1 = (x - sample_mean) / np.sqrt(sample_var + eps)
+    out = x1 * gamma + beta
+    cache = (x1, sample_mean, sample_var, gamma, beta, eps)
+
+  elif mode == "test":
+    running_mean = running_mean.reshape((1, C, H, W))
+    running_var = running_var.reshape((1, C, H, W))
+    x1 = (x - running_mean) / np.sqrt(running_var + eps)
+    out = x1 * gamma + beta
+  else:
+    raise ValueError('Invalid forward batchnorm mode "%s"' % mode)
+  bn_param['running_mean'] = running_mean
+  bn_param['running_var'] = running_var
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -589,7 +615,14 @@ def spatial_batchnorm_backward(dout, cache):
   # version of batch normalization defined above. Your implementation should  #
   # be very short; ours is less than five lines.                              #
   #############################################################################
-  pass
+  x1, sample_mean, sample_var, gamma, beta, eps = cache
+  dbeta = np.sum(dout, axis = (0,2,3))
+  dgamma = np.sum(x1 * dout, axis = (0,2,3))
+  v = sample_var + eps
+  dtmp = dout * gamma / np.sqrt(v)
+  dx = -(dtmp * x1).mean(axis = 0, keepdims = True) * x1
+  dx -= dtmp.mean(axis = 0, keepdims = True)
+  dx += dtmp
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
